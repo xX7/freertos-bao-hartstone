@@ -34,7 +34,7 @@
 /*! \def	GUI_OUTPUT
     \brief	Produces Output Format for the GUI Application
 */
-#define GUI_OUTPUT
+#undef GUI_OUTPUT
 
 /*! \def	N_TASK
     \brief	Number of tasks

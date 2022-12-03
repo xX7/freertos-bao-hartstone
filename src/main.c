@@ -35,6 +35,7 @@
 #include <irq.h>
 #include <plat.h>
 
+#include <hartstone.h>
 /*
  * Prototypes for the standard FreeRTOS callback/hook functions implemented
  * within this file.  See https://www.freertos.org/a00016.html
@@ -101,25 +102,10 @@ int main(void){
     irq_set_prio(UART_IRQ_ID, IRQ_MAX_PRIO);
     irq_enable(UART_IRQ_ID);    
 
+    printf("Starting haRTSone baseline test...");
+
     shmem_init();
-
-    xTaskCreate(
-        vTask,
-        "Task1",
-        configMINIMAL_STACK_SIZE,
-        (void *)1,
-        tskIDLE_PRIORITY + 1,
-        NULL);
-
-    xTaskCreate(
-        vTask,
-        "Task2",
-        configMINIMAL_STACK_SIZE,
-        (void *)2,
-        tskIDLE_PRIORITY + 1,
-        NULL);
-
-    vTaskStartScheduler();
+    hartstone_start();
 }
 /*-----------------------------------------------------------*/
 
