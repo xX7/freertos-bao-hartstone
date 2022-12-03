@@ -26,6 +26,7 @@ endif
 
 SRC_DIR:=./src
 BMRT_SRC_DIR:=./src/baremetal-runtime/src
+HRT_SRC_DIR:=./src/hartstone
 BUILD_DIR:=build/$(PLATFORM)
 TARGET:=$(BUILD_DIR)/$(NAME)
 SRC_DIRS:=$(SRC_DIR)
@@ -38,6 +39,10 @@ FREERTOS_MEMMNG_DIR:=$(FREERTOS_DIR)/portable/MemMang
 SRC_DIRS+=$(FREERTOS_DIR) $(FREERTOS_MEMMNG_DIR)
 C_SRC+=$(wildcard $(FREERTOS_DIR)/*.c)
 C_SRC+=$(FREERTOS_MEMMNG_DIR)/heap_4.c
+
+SRC_DIRS+=$(HRT_SRC_DIR)
+-include $(HRT_SRC_DIR)/sources.mk
+C_SRC+=$(addprefix $(HRT_SRC_DIR)/, $(hart_c_srcs))
 
 BMRT_CORE_DIR:=$(BMRT_SRC_DIR)/core
 SRC_DIRS+=$(BMRT_CORE_DIR)
