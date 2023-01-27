@@ -67,7 +67,7 @@ int main(void){
     irq_set_prio(UART_IRQ_ID, IRQ_MAX_PRIO);
     irq_enable(UART_IRQ_ID);    
 
-    hartstone_start();
+    hartstone_init();
 }
 /*-----------------------------------------------------------*/
 

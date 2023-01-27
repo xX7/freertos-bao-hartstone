@@ -134,7 +134,7 @@ void hartstone_print_report(uint8_t experiment_num, uint8_t test_num,uint8_t add
 	printf("Test %d characteristics:\r\n\r\n",test_num);
 	printf("%-14s %-14s %-14s %-14s %-18s\r\n", "Task", "Frequency", "Kilo-Whets", "Kilo-Whets", "Requested Workload");
 	printf("%-14s %-14s %-14s %-14s %-18s\r\n", "No.", "(Herz)", "per period", "per second", "Utilization");
-	
+
 	for(k=0;k<(N_TASK + additional);k++){
 		load_p = ((experiment_num == 3)?load_exp3[k]:load[k]);
 		workload = 100.0 * load_p*frequency[k]/raw_speed;
@@ -199,7 +199,7 @@ void hartstone_test(uint8_t exp,uint8_t test,uint8_t additional,pdTASK_CODE pvTa
 }
 
 
-void hartstone_start(void) {
+void hartstone_init(void) {
 
 	/* Create the first task that manages the tests */
 	xHartstoneSem = xSemaphoreCreateBinary();

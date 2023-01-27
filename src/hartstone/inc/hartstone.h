@@ -97,7 +97,7 @@ void hartstone_test(uint8_t exp,uint8_t test,uint8_t additional,pdTASK_CODE pvTa
 /*! \fn		void hartstone_start(void)
     \brief  Launches the Benchamark
 */
-void hartstone_start(void);
+void hartstone_init(void);
 
 /*! \fn		void hartstone_error(uint8_t errorCode)
     \brief  Generates and sends the right error string starting from the error code
