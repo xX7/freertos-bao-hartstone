@@ -47,64 +47,26 @@ void vApplicationTickHook(void);
 
 /*-----------------------------------------------------------*/
 
-void vTask(void *pvParameters)
-{
-    unsigned long counter = 0;
-    unsigned long id = (unsigned long)pvParameters;
-    while (1)
-    {
-        printf("Task%d: %d\n", id, counter++); 
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-}
-
-#define SHMEM_IRQ_ID (52)
-
-char* const freertos_message = (char*)0x70000000;
-char* const linux_message    = (char*)0x70002000;
-const size_t shmem_channel_size = 0x2000;
-
-
-void shmem_update_msg(int irq_count) {
-    sprintf(freertos_message, "freertos has received %d uart interrupts!\n", 
-        irq_count);
-}
-
 void uart_rx_handler(){
-    static int irq_count = 0;
-    printf("%s %d\n", __func__, ++irq_count);
-    shmem_update_msg(irq_count);
+    static BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+   
+    printf("%s\n", "Received interrupt via UART");
+    printf("Starting Hartstone PH Benchmark...\n");
+    xSemaphoreGiveFromISR( xHartstoneSem, &xHigherPriorityTaskWoken );
+    
     uart_clear_rxirq();
-}
-
-void shmem_handler() {
-    linux_message[shmem_channel_size-1] = '\0';
-    char* end = strchr(linux_message, '\n');
-    *end = '\0';
-    printf("message from linux: %s\n", linux_message);
-}
-
-void shmem_init() {
-    memset(freertos_message, 0, shmem_channel_size);
-    memset(linux_message, 0, shmem_channel_size);
-    shmem_update_msg(0);
-    irq_set_handler(SHMEM_IRQ_ID, shmem_handler);
-    irq_set_prio(SHMEM_IRQ_ID, IRQ_MAX_PRIO);
-    irq_enable(SHMEM_IRQ_ID);
+    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
 int main(void){
-
-    printf("Bao FreeRTOS guest\n");
+    printf("Bao FreeRTOS Guest\n");
+    printf("Press any key to start Hartstone PH-Series Benchmark...\n");
 
     uart_enable_rxirq();
     irq_set_handler(UART_IRQ_ID, uart_rx_handler);
     irq_set_prio(UART_IRQ_ID, IRQ_MAX_PRIO);
     irq_enable(UART_IRQ_ID);    
 
-    printf("Starting haRTSone baseline test...");
-
-    shmem_init();
     hartstone_start();
 }
 /*-----------------------------------------------------------*/

@@ -2,6 +2,8 @@
 #include <global.h>
 #include <stdio.h>
 
+xSemaphoreHandle xHartstoneSem;
+
 void hartstone_raw_speed(){
 	portTickType start,stop = 0,el;
 	uint32_t single_load = RAW_SINGLE_LOAD;
@@ -130,16 +132,17 @@ void hartstone_print_report(uint8_t experiment_num, uint8_t test_num,uint8_t add
 	printf("Experiment:\tEXPERIMENT_%d\r\n\r\n",experiment_num);
 	printf("Raw speed in KWIPS: %d\r\n\r\n",raw_speed);
 	printf("Test %d characteristics:\r\n\r\n",test_num);
-	printf("Task \t Frequency \t Kilo-Whets \t Kilo-Whets \t Requested Workload\r\n");
-	printf("No. \t (Hertz) \t per period \t per second \t Utilization\r\n");
+	printf("%-14s %-14s %-14s %-14s %-18s\r\n", "Task", "Frequency", "Kilo-Whets", "Kilo-Whets", "Requested Workload");
+	printf("%-14s %-14s %-14s %-14s %-18s\r\n", "No.", "(Herz)", "per period", "per second", "Utilization");
+	
 	for(k=0;k<(N_TASK + additional);k++){
 		load_p = ((experiment_num == 3)?load_exp3[k]:load[k]);
 		workload = 100.0 * load_p*frequency[k]/raw_speed;
-		printf("%d \t %.2f \t\t %.2f \t\t %.2f \t\t %.2f %% \r\n",k+1,frequency[k],load_p,load_p*frequency[k],workload);
+		printf("%-14d %-14.2f %-14.2f %-14.2f %-5.2f%%  \r\n",k+1,frequency[k],load_p,load_p*frequency[k],workload);
 		sum += (load_p*frequency[k]);
 	}
-	printf("\t\t\t\t\t -------\t -------\r\n");
-	printf("\t\t\t\t\t %.2f \t\t %.2f %% \r\n\r\n",sum,sum*100/raw_speed);
+	printf("%52s %14s\r\n", "-------", "-------");
+	printf("%52.2f %11.2f %% \r\n\r\n",sum,sum*100/raw_speed);
 	printf("Experiment step size: %.2f %%\r\n",hartstone_step_size(experiment_num));
 	printf("\r\n-------------------------------------------------------\r\n");
 	printf("Test %d results:\r\n\r\n",test_num);
@@ -153,7 +156,7 @@ void hartstone_print_report(uint8_t experiment_num, uint8_t test_num,uint8_t add
 		skipped = ((deadline_miss[k]>0)?(TEST_LEN / period[k] - deadline_met[k] - deadline_miss[k]):0);
 		printf("%d \t %d \t\t %d \t\t %d \t\t %d \r\n",k+1,period[k],deadline_met[k],deadline_miss[k],skipped);
 	}
-	printf("=======================================================\r\n\r\n");
+	printf("===========================================================\r\n\r\n");
 #endif
 }
 
@@ -199,6 +202,7 @@ void hartstone_test(uint8_t exp,uint8_t test,uint8_t additional,pdTASK_CODE pvTa
 void hartstone_start(void) {
 
 	/* Create the first task that manages the tests */
+	xHartstoneSem = xSemaphoreCreateBinary();
 	xTaskCreate(vManagementTask, ( const char * ) "Task", TASK_MAN_STACK_SIZE, NULL, 7, NULL );
 	vTaskStartScheduler(); // This should never return.
 	while(1);
@@ -237,114 +241,125 @@ void hartstone_error(uint8_t errorCode) {
 }
 
 void vManagementTask( void * pvParameters ){
-	vPortTaskUsesFPU();
-	uint8_t i = 0;
+	portTASK_USES_FLOATING_POINT();
+
+	if (xSemaphoreTake(xHartstoneSem, portMAX_DELAY) == pdTRUE)
+	{
+			uint8_t i = 0;
 
 #ifdef RAW_TEST
-	hartstone_raw_speed();
+			hartstone_raw_speed();
 #endif
 
 #ifdef EXP_1
-	/* Experiment 1 */
-	i = 0;
-	float p;
-	int p1;
-	uint8_t first = 0;
-	do{
-		/* From specifics:
-		 * The amount by which the
-		 *	frequency increases must preserve the harmonic nature of the task set frequencies: this means a
-		 *	minimum increase by an amount equal to the frequency of task 4.
-		 */
-		baseline_test_init();
-		frequency[4] += (i)*frequency[3];
-		p = (1.0/frequency[4])*1000;
-		p1 = (int)p;
-		period[4] = p1;
+			/* Experiment 1 */
+			i = 0;
+			float p;
+			int p1;
+			uint8_t first = 0;
+			do
+			{
+				/* From specifics:
+				 * The amount by which the
+				 *	frequency increases must preserve the harmonic nature of the task set frequencies: this means a
+				 *	minimum increase by an amount equal to the frequency of task 4.
+				 */
+				baseline_test_init();
+				frequency[4] += (i)*frequency[3];
+				p = (1.0 / frequency[4]) * 1000;
+				p1 = (int)p;
+				period[4] = p1;
 
-		if(period[4] == 1){
-			if(first == 0)
-				first = 1;
-			else{
-				hartstone_error(4);
-				break;
-			}
-		}
-		hartstone_test(1, i, 0, vGenericTask);
+				if (period[4] == 1)
+				{
+					if (first == 0)
+						first = 1;
+					else
+					{
+						hartstone_error(4);
+						break;
+					}
+				}
+				hartstone_test(1, i, 0, vGenericTask);
 
-		i++;
-	}while( total_deadline_miss() == 0 );
+				i++;
+			} while (total_deadline_miss() == 0);
 #endif
 
 #ifdef EXP_2
-	/* Experiment 2 */
+			/* Experiment 2 */
 
-	i = 0;
-	first = 0;
-	do{
-		/* From specifics:
-		 * Starting with the baseline task set, all the frequencies are scaled by 1.1, then 1.2,
-		 * then 1.3, and so on for each new test until a deadline is missed
-		 */
-		baseline_test_init();
-		scale_frequencies((1.0 + 0.1*i));
+			i = 0;
+			first = 0;
+			do
+			{
+				/* From specifics:
+				 * Starting with the baseline task set, all the frequencies are scaled by 1.1, then 1.2,
+				 * then 1.3, and so on for each new test until a deadline is missed
+				 */
+				baseline_test_init();
+				scale_frequencies((1.0 + 0.1 * i));
 
-		if(period[4] == 1){
-			if(first == 0)
-				first = 1;
-			else{
-				hartstone_error(4);
-				break;
-			}
-		}
-		hartstone_test(2, i, 0, vGenericTask);
-		i++;
-	}while( total_deadline_miss() == 0 );
+				if (period[4] == 1)
+				{
+					if (first == 0)
+						first = 1;
+					else
+					{
+						hartstone_error(4);
+						break;
+					}
+				}
+				hartstone_test(2, i, 0, vGenericTask);
+				i++;
+			} while (total_deadline_miss() == 0);
 #endif
 
 #ifdef EXP_3
-	/* Experiment 3 */
+			/* Experiment 3 */
 
-	i = 0;
-	baseline_test_init();
-	do{
+			i = 0;
+			baseline_test_init();
+			do
+			{
 
-		hartstone_test(3, i, 0, vGenericTaskExp3);
+				hartstone_test(3, i, 0, vGenericTaskExp3);
 
-		/* From specifics:
-		 * Starting with the baseline task set, all the load are increased by 1KWIPP
-		 * for each new test until a deadline is missed
-		 */
-		increment_workload();
-		i++;
-	}while( total_deadline_miss() == 0 );
+				/* From specifics:
+				 * Starting with the baseline task set, all the load are increased by 1KWIPP
+				 * for each new test until a deadline is missed
+				 */
+				increment_workload();
+				i++;
+			} while (total_deadline_miss() == 0);
 #endif
 
 #ifdef EXP_4
-	/* Experiment 4 */
+			/* Experiment 4 */
 
-	i = 0;
-	baseline_test_init();
-	do{
+			i = 0;
+			baseline_test_init();
+			do
+			{
 
-		/* From specifics:
-		 * Starting with the baseline task set, new tasks with the same frequency
-		 * and workload as the "middle" task, task 3, of the baseline set are
-		 * added until a deadline is missed. */
+				/* From specifics:
+				 * Starting with the baseline task set, new tasks with the same frequency
+				 * and workload as the "middle" task, task 3, of the baseline set are
+				 * added until a deadline is missed. */
 
-		/* Here i represents the number of additional tasks in this test */
+				/* Here i represents the number of additional tasks in this test */
 
-		hartstone_test(4, i, i, vGenericTask);
-		i++;
-	}while( total_deadline_miss() == 0 && i<=MAX_ADDITIONAL_TASKS );
+				hartstone_test(4, i, i, vGenericTask);
+				i++;
+			} while (total_deadline_miss() == 0 && i <= MAX_ADDITIONAL_TASKS);
 #endif
-	while(1);
+	}
 }
 
 
 void vGenericTask( void * pvParameters )
 {
-	vPortTaskUsesFPU();
+	portTASK_USES_FLOATING_POINT();
 	INIT_PERIODIC()
 	START_PERIODIC()
 
@@ -354,7 +369,7 @@ void vGenericTask( void * pvParameters )
 
 void vGenericTaskExp3( void * pvParameters )
 {
-	vPortTaskUsesFPU();
+	portTASK_USES_FLOATING_POINT();
 	INIT_PERIODIC()
 	START_PERIODIC()
 

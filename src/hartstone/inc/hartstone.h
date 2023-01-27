@@ -7,6 +7,7 @@
 #define HARTSTONE_H
 
 #include <FreeRTOS.h>
+#include <semphr.h>
 #include <task.h>
 #include <FreeRTOSConfig.h>
 #include <whetstone.h>
@@ -103,5 +104,11 @@ void hartstone_start(void);
     \param	errorCode	Error code
 */
 void hartstone_error(uint8_t errorCode);
+
+/*!
+ * \var		xSemaphoreHandle xHartstoneSem
+ * \brief	Semaphore to activate the hartstone benchmark task
+ */
+extern xSemaphoreHandle xHartstoneSem;
 
 #endif /* HARTSTONE_H */
