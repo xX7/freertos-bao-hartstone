@@ -212,7 +212,7 @@ void hartstone_error(uint8_t errorCode) {
 	switch(errorCode){
 		case 2:
 			#ifndef GUI_OUTPUT
-				printf("Error in the task set creation");
+				printf("Error in the task set creation\r\n");
 			#else
 				printf("2;");
 				while(1)
@@ -222,7 +222,7 @@ void hartstone_error(uint8_t errorCode) {
 
 		case 3:
 			#ifndef GUI_OUTPUT
-				printf("Error in delete taskset");
+				printf("Error in delete taskset\r\n");
 			#else
 				printf("3;");
 				while(1)
@@ -232,7 +232,7 @@ void hartstone_error(uint8_t errorCode) {
 
 		case 4:
 			#ifndef GUI_OUTPUT
-				printf("Error ");
+				printf("Error \r\n");
 			#else
 				printf("4;");
 			#endif

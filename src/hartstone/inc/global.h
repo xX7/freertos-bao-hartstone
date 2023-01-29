@@ -44,7 +44,7 @@
 /*! \def	MAX_ADDITIONAL_TASKS
     \brief	Number of additional tasks to handle EXPERIMENT_4
 */
-#define MAX_ADDITIONAL_TASKS	10
+#define MAX_ADDITIONAL_TASKS	50
 
 /*! \def	TEST_LEN
     \brief	Duration of each test
@@ -69,12 +69,12 @@
 /*! \def	BASELINE_FREQUENCY_0
     \brief	Frequency of the lowest priority task in the Baseline Task-Set, expressed in Hz
 */
-#define BASELINE_FREQUENCY_0	2
+#define BASELINE_FREQUENCY_0	2 //2
 
 /*! \def	BASELINE_PERIOD_0
     \brief	Period of the lowest priority task in the Baseline Task-Set, expressed in ms
 */
-#define BASELINE_PERIOD_0 		500
+#define BASELINE_PERIOD_0 		500 //500
 
 /*! \def	BASELINE_PRIORITY_0
     \brief	Priority of the lowest priority task in the Baseline Task-Set
@@ -84,12 +84,12 @@
 /*! \def	BASELINE_LOAD_0
     \brief	Load of the lowest priority task in the Baseline Task-Set
 */
-#define BASELINE_LOAD_0			1024
+#define BASELINE_LOAD_0			122880//30720//61440//1024
 
 /*! \def	WORKLOAD_STEP
     \brief	Amount of KWIPS added for each Experiment 3 Test.
 */
-#define WORKLOAD_STEP			8
+#define WORKLOAD_STEP			2000//8
 
 /*!
  * \var 	portTickType deadline_miss
